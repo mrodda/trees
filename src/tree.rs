@@ -1,16 +1,17 @@
 /// \file tree.rs
 /// \author https://github.com/mrodda/
 
+use crate::FileSizeUnit;
+use Entry::{File, Dir};
 use std::{
-    borrow::Borrow,
-    path::{Path, PathBuf},
-    cell::RefCell,
-    fs::{DirEntry, ReadDir, read_dir},
-    io::Result,
-    rc::{Rc, Weak},
+    path::PathBuf,
+    fs::{DirEntry, read_dir},
 };
 
-use Entry::{File, Dir};
+const LAST_ITEM: &str = "└─";
+const LAST_PREFIX: &str = "  ";
+const NOT_LAST_ITEM: &str = "├─";
+const NOT_LAST_PREFIX: &str = "│ ";
 
 enum Entry {
     File(FileDesc),
@@ -38,27 +39,41 @@ impl Entry {
         }
     }
 
-    fn print_rec(&self, prefix: String, children_prefix: String) {
+    fn print_rec(&self, prefix: String, children_prefix: String, hide_size: bool, unit: FileSizeUnit) {
         match self {
-            File(desc) => desc.print_basename(prefix),
-            Dir(desc) => desc.print_rec(prefix, children_prefix),
+            File(desc) => desc.print_basename(prefix, hide_size, unit),
+            Dir(desc) => desc.print_rec(prefix, children_prefix, hide_size, unit),
         };
     }
 }
 
 impl FileDesc {
-    fn print_basename(&self, prefix: String) {
-        println!(
-            "{}{} ({}B)",
-            prefix,
-            self
-                .path
-                .file_name()
-                .expect("could not get file_name")
-                .to_str()
-                .expect("could not convert to string"),
-            self.size
-        );
+    fn print_basename(&self, prefix: String, hide_size: bool, unit: FileSizeUnit) {
+        if hide_size {
+            println!(
+                "{}{}",
+                prefix,
+                self
+                    .path
+                    .file_name()
+                    .expect("could not get file_name")
+                    .to_str()
+                    .expect("could not convert string")
+            );
+        } else {
+            println!(
+                "{}{} ({}{})",
+                prefix,
+                self
+                    .path
+                    .file_name()
+                    .expect("could not get file_name")
+                    .to_str()
+                    .expect("could not convert string"),
+                self.size,
+                unit.to_str()
+            );
+        }
     }
 }
 
@@ -91,52 +106,60 @@ impl DirDesc {
         &self,
         prefix: String,
         children_prefix: String,
+        hide_size: bool,
+        unit: FileSizeUnit
     ) {
-        self.print_basename(prefix);
-        let last_item = "└─";
-        let last_prefix = "  ";
-        let not_last_item = "├─";
-        let not_last_prefix = "│ ";
+        self.print_basename(prefix, hide_size, unit);
         let it = &mut self.entries.iter().peekable();
         while let Some(entry) = &it.next() {
             let (next_prefix, next_children_prefix) = if let Some(_) = it.peek() {
-                (children_prefix.to_owned() + &not_last_item, children_prefix.to_owned() + &not_last_prefix)
+                (children_prefix.to_owned() + &NOT_LAST_ITEM, children_prefix.to_owned() + &NOT_LAST_PREFIX)
             } else {
-                (children_prefix.to_owned() + &last_item, children_prefix.to_owned() + &last_prefix)
+                (children_prefix.to_owned() + &LAST_ITEM, children_prefix.to_owned() + &LAST_PREFIX)
             };
-            entry.print_rec(next_prefix.to_string(), next_children_prefix.to_string());
+            entry.print_rec(next_prefix.to_string(), next_children_prefix.to_string(), hide_size, unit);
         }
     }
 
-    pub fn print(&self) {
-        self.print_basename("".to_string());
-        let last_item = "└─";
-        let last_prefix = "  ";
-        let not_last_item = "├─";
-        let not_last_prefix = "│ ";
+    pub fn print(&self, hide_size: bool, unit: FileSizeUnit) {
+        self.print_basename("".to_string(), hide_size, unit);
         let it = &mut self.entries.iter().peekable();
         while let Some(entry) = &it.next() {
             let (prefix, children_prefix) = if let Some(_) = it.peek() {
-                (&not_last_item, &not_last_prefix)
+                (&NOT_LAST_ITEM, &NOT_LAST_PREFIX)
             } else {
-                (&last_item, &last_prefix)
+                (&LAST_ITEM, &LAST_PREFIX)
             };
-            entry.print_rec(prefix.to_string(), children_prefix.to_string());
+            entry.print_rec(prefix.to_string(), children_prefix.to_string(), hide_size, unit);
         }
     }
 
-    fn print_basename(&self, prefix: String) {
-        println!(
-            "{}{} ({}B)",
-            prefix,
-            self
-                .path
-                .file_name()
-                .expect("could not get file_name")
-                .to_str()
-                .expect("could not convert to string"),
-            self.size
-        );
+    fn print_basename(&self, prefix: String, hide_size: bool, unit: FileSizeUnit) {
+        if hide_size {
+            println!(
+                "{}{}",
+                prefix,
+                self
+                    .path
+                    .file_name()
+                    .expect("could not get file_name")
+                    .to_str()
+                    .expect("could not convert string")
+            );
+        } else {
+            println!(
+                "{}{} ({}{})",
+                prefix,
+                self
+                    .path
+                    .file_name()
+                    .expect("could not get file_name")
+                    .to_str()
+                    .expect("could not convert string"),
+                self.size,
+                unit.to_str()
+            );
+        }
     }
 }
 
@@ -169,7 +192,7 @@ impl Tree {
         }
     }
 
-    pub fn print(&self) {
-        self.root.print();
+    pub fn print(&self, hide_size: bool, unit: FileSizeUnit) {
+        self.root.print(hide_size, unit);
     }
 }
