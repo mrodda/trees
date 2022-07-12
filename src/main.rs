@@ -25,10 +25,10 @@ impl FileSizeFormat {
     fn to_string(&self, size: u64) -> String {
         match self {
             Byte => "B".into(),
-            Kilo => (size / 1_000).to_string() + "KB",
-            Mega => (size / 1_000_000).to_string() + "MB",
-            Giga => (size / 1_000_000_000).to_string() + "GB",
-            Tera => (size / 1_000_000_000_000).to_string() + "TB",
+            Kilo => (size as f64 / 1_000f64).to_string() + "KB",
+            Mega => (size as f64 / 1_000_000f64).to_string() + "MB",
+            Giga => (size as f64 / 1_000_000_000f64).to_string() + "GB",
+            Tera => (size as f64 / 1_000_000_000_000f64).to_string() + "TB",
         }
     }
 }
