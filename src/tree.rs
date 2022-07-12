@@ -1,7 +1,7 @@
 /// \file tree.rs
 /// \author https://github.com/mrodda/
 
-use crate::FileSizeUnit;
+use crate::FileSizeFormat;
 use Entry::{File, Dir};
 use std::{
     path::PathBuf,
@@ -27,6 +27,26 @@ struct FileDesc {
     size: u64,
 }
 
+trait Basename {
+    fn print_basename(&self, prefix: String, hide_size: bool, unit: FileSizeFormat) {
+        if hide_size {
+            println!("{}{}", prefix, self.path_str());
+        } else {
+            println!("{}{} ({})", prefix, self.path_str(), unit.to_string(self.size()));
+        }
+    }
+
+    fn path(&self) -> &PathBuf;
+    fn size(&self) -> u64;
+    fn path_str(&self) -> &str {
+        self.path()
+            .file_name()
+            .expect("could not get file_name")
+            .to_str()
+            .expect("could not convert string")
+    }
+}
+
 pub struct Tree {
     root: DirDesc,
 }
@@ -39,7 +59,7 @@ impl Entry {
         }
     }
 
-    fn print_rec(&self, prefix: String, children_prefix: String, hide_size: bool, unit: FileSizeUnit) {
+    fn print_rec(&self, prefix: String, children_prefix: String, hide_size: bool, unit: FileSizeFormat) {
         match self {
             File(desc) => desc.print_basename(prefix, hide_size, unit),
             Dir(desc) => desc.print_rec(prefix, children_prefix, hide_size, unit),
@@ -47,33 +67,21 @@ impl Entry {
     }
 }
 
-impl FileDesc {
-    fn print_basename(&self, prefix: String, hide_size: bool, unit: FileSizeUnit) {
-        if hide_size {
-            println!(
-                "{}{}",
-                prefix,
-                self
-                    .path
-                    .file_name()
-                    .expect("could not get file_name")
-                    .to_str()
-                    .expect("could not convert string")
-            );
-        } else {
-            println!(
-                "{}{} ({}{})",
-                prefix,
-                self
-                    .path
-                    .file_name()
-                    .expect("could not get file_name")
-                    .to_str()
-                    .expect("could not convert string"),
-                self.size,
-                unit.to_str()
-            );
-        }
+impl Basename for FileDesc {
+    fn path(&self) -> &PathBuf {
+        &self.path
+    }
+    fn size(&self) -> u64 {
+        self.size
+    }
+}
+
+impl Basename for DirDesc {
+    fn path(&self) -> &PathBuf {
+        &self.path
+    }
+    fn size(&self) -> u64 {
+        self.size
     }
 }
 
@@ -107,7 +115,7 @@ impl DirDesc {
         prefix: String,
         children_prefix: String,
         hide_size: bool,
-        unit: FileSizeUnit
+        unit: FileSizeFormat
     ) {
         self.print_basename(prefix, hide_size, unit);
         let it = &mut self.entries.iter().peekable();
@@ -121,7 +129,7 @@ impl DirDesc {
         }
     }
 
-    pub fn print(&self, hide_size: bool, unit: FileSizeUnit) {
+    pub fn print(&self, hide_size: bool, unit: FileSizeFormat) {
         self.print_basename("".to_string(), hide_size, unit);
         let it = &mut self.entries.iter().peekable();
         while let Some(entry) = &it.next() {
@@ -131,34 +139,6 @@ impl DirDesc {
                 (&LAST_ITEM, &LAST_PREFIX)
             };
             entry.print_rec(prefix.to_string(), children_prefix.to_string(), hide_size, unit);
-        }
-    }
-
-    fn print_basename(&self, prefix: String, hide_size: bool, unit: FileSizeUnit) {
-        if hide_size {
-            println!(
-                "{}{}",
-                prefix,
-                self
-                    .path
-                    .file_name()
-                    .expect("could not get file_name")
-                    .to_str()
-                    .expect("could not convert string")
-            );
-        } else {
-            println!(
-                "{}{} ({}{})",
-                prefix,
-                self
-                    .path
-                    .file_name()
-                    .expect("could not get file_name")
-                    .to_str()
-                    .expect("could not convert string"),
-                self.size,
-                unit.to_str()
-            );
         }
     }
 }
@@ -192,7 +172,7 @@ impl Tree {
         }
     }
 
-    pub fn print(&self, hide_size: bool, unit: FileSizeUnit) {
+    pub fn print(&self, hide_size: bool, unit: FileSizeFormat) {
         self.root.print(hide_size, unit);
     }
 }

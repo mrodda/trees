@@ -1,14 +1,14 @@
 use clap::{ArgEnum, Parser};
 use crate::{
     tree::Tree,
-    FileSizeUnit::{ Byte, Kilo, Mega, Giga, Tera }
+    FileSizeFormat::{ Byte, Kilo, Mega, Giga, Tera }
 };
 use std::{path::PathBuf, process::exit};
 
 mod tree;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
-pub enum FileSizeUnit {
+pub enum FileSizeFormat {
     /// Bytes.
     Byte,
     /// Kilobytes.
@@ -21,14 +21,14 @@ pub enum FileSizeUnit {
     Tera,
 }
 
-impl FileSizeUnit {
-    fn to_str<'a>(&self) -> &'a str {
+impl FileSizeFormat {
+    fn to_string(&self, size: u64) -> String {
         match self {
-            Byte => "B",
-            Kilo => "KB",
-            Mega => "MB",
-            Giga => "GB",
-            Tera => "TB",
+            Byte => "B".into(),
+            Kilo => (size / 1_000).to_string() + "KB",
+            Mega => (size / 1_000_000).to_string() + "MB",
+            Giga => (size / 1_000_000_000).to_string() + "GB",
+            Tera => (size / 1_000_000_000_000).to_string() + "TB",
         }
     }
 }
@@ -43,8 +43,8 @@ struct Args {
     #[clap(short = 'H', long = "hide-size", action)]
     hide_size: bool,
     /// Unit
-    #[clap(arg_enum, short, long, value_parser, default_value_t = FileSizeUnit::Kilo)]
-    unit: FileSizeUnit,
+    #[clap(arg_enum, short, long, value_parser, default_value_t = FileSizeFormat::Kilo)]
+    unit: FileSizeFormat,
 }
 
 impl Args {
