@@ -59,11 +59,21 @@ impl Entry {
         }
     }
 
-    fn print_rec(&self, prefix: String, children_prefix: String, hide_size: bool, unit: FileSizeFormat) {
-        match self {
-            File(desc) => desc.print_basename(prefix, hide_size, unit),
-            Dir(desc) => desc.print_rec(prefix, children_prefix, hide_size, unit),
-        };
+    fn print_rec(
+        &self,
+        prefix: String,
+        children_prefix: String,
+        hide_size: bool,
+        unit: FileSizeFormat,
+        max_depth: u32,
+        depth: u32
+    ) {
+        if max_depth == 0 || depth <= max_depth {
+            match self {
+                File(desc) => desc.print_basename(prefix, hide_size, unit),
+                Dir(desc) => desc.print_rec(prefix, children_prefix, hide_size, unit, max_depth, depth),
+            };
+        }
     }
 }
 
@@ -115,21 +125,25 @@ impl DirDesc {
         prefix: String,
         children_prefix: String,
         hide_size: bool,
-        unit: FileSizeFormat
+        unit: FileSizeFormat,
+        max_depth: u32,
+        depth: u32
     ) {
-        self.print_basename(prefix, hide_size, unit);
-        let it = &mut self.entries.iter().peekable();
-        while let Some(entry) = &it.next() {
-            let (next_prefix, next_children_prefix) = if let Some(_) = it.peek() {
-                (children_prefix.to_owned() + &NOT_LAST_ITEM, children_prefix.to_owned() + &NOT_LAST_PREFIX)
-            } else {
-                (children_prefix.to_owned() + &LAST_ITEM, children_prefix.to_owned() + &LAST_PREFIX)
-            };
-            entry.print_rec(next_prefix.to_string(), next_children_prefix.to_string(), hide_size, unit);
+        if max_depth == 0 || depth <= max_depth {
+            self.print_basename(prefix, hide_size, unit);
+            let it = &mut self.entries.iter().peekable();
+            while let Some(entry) = &it.next() {
+                let (next_prefix, next_children_prefix) = if let Some(_) = it.peek() {
+                    (children_prefix.to_owned() + &NOT_LAST_ITEM, children_prefix.to_owned() + &NOT_LAST_PREFIX)
+                } else {
+                    (children_prefix.to_owned() + &LAST_ITEM, children_prefix.to_owned() + &LAST_PREFIX)
+                };
+                entry.print_rec(next_prefix.to_string(), next_children_prefix.to_string(), hide_size, unit, max_depth, depth + 1);
+            }
         }
     }
 
-    pub fn print(&self, hide_size: bool, unit: FileSizeFormat) {
+    pub fn print(&self, hide_size: bool, unit: FileSizeFormat, max_depth: u32) {
         self.print_basename("".to_string(), hide_size, unit);
         let it = &mut self.entries.iter().peekable();
         while let Some(entry) = &it.next() {
@@ -138,7 +152,7 @@ impl DirDesc {
             } else {
                 (&LAST_ITEM, &LAST_PREFIX)
             };
-            entry.print_rec(prefix.to_string(), children_prefix.to_string(), hide_size, unit);
+            entry.print_rec(prefix.to_string(), children_prefix.to_string(), hide_size, unit, max_depth, 1);
         }
     }
 }
@@ -172,7 +186,7 @@ impl Tree {
         }
     }
 
-    pub fn print(&self, hide_size: bool, unit: FileSizeFormat) {
-        self.root.print(hide_size, unit);
+    pub fn print(&self, hide_size: bool, unit: FileSizeFormat, max_depth: u32) {
+        self.root.print(hide_size, unit, max_depth);
     }
 }

@@ -1,3 +1,6 @@
+/// \file main.rs
+/// \author https://github.com/mrodda/
+
 use clap::{ArgEnum, Parser};
 use crate::{
     tree::Tree,
@@ -45,6 +48,9 @@ struct Args {
     /// Unit
     #[clap(arg_enum, short, long, value_parser, default_value_t = FileSizeFormat::Kilo)]
     unit: FileSizeFormat,
+    /// Max depth to print.
+    #[clap(short, long, value_parser, default_value_t = 0)]
+    depth: u32,
 }
 
 impl Args {
@@ -66,5 +72,5 @@ impl Args {
 fn main() {
     let cli = Args::parse();
     let tree = Tree::explore(cli.get_path());
-    tree.print(cli.hide_size, cli.unit);
+    tree.print(cli.hide_size, cli.unit, cli.depth);
 }
